@@ -32,6 +32,9 @@ library(data.table)
 library(ggpubr)
 library(flowAI)
 library(PeacoQC)
+library(renv)
+
+renv::init()
 
 # Set PrimaryDirectory where this script is located
 dirname(rstudioapi::getActiveDocumentContext()$path)  
@@ -54,7 +57,7 @@ dirFCSfiles <- "fcs_files2"
 FCSdirPath <- paste(dirPath, dirFCSfiles, sep = "/")
 dir.create(FCSdirPath)
 
-workingDir <- "220921_WorkingDirectory"
+workingDir <- "230223_WorkingDirectory"
 workingDirPath <- paste(PrimaryDirectory, workingDir, sep = "/")
 dir.create(workingDirPath)
 
@@ -63,31 +66,10 @@ CSVfiles <- list.files(CSVdirPath, pattern = ".csv$", full = FALSE)
 fileName <- gsub(".csv", ".fcs", CSVfiles)
 
 # create sample_metadata.csv
-# fwrite(list(fileName), "sample_metadata_2.csv")
+fwrite(list(fileName), "sample_metadata2.csv")
 
-# rbind for manual concatenation of certain files
 
-# library(dplyr)
-# library(readr)
-# library(purrr)
-# 
-# sample_list <- c("BM_1", "BM_2", "BM_3", "LN_1", "LN_2", "LN_3", "TUM_1", "TUM_2", "TUM_3")
-# 
-# for (i in c(1:length(sample_list))){
-#   new_csv <- list.files(path = CSVdirPath, pattern = sample_list[[i]], full.names = TRUE) %>%
-#     lapply(read_csv) %>%
-#     map_df(., bind_rows)
-#   write_csv(new_csv, paste(sample_list[i], 'csv', sep = '.'))
-# }
-# 
-# 
-# new_csv <- list.files(path = CSVdirPath, pattern = "LN_2", full.names = TRUE) %>%
-#   lapply(read_csv) %>%
-#   map_df(., bind_rows)
-# 
-# write.csv(new_csv, "[i].csv")
-
-err_vals <- c(15, 44)
+# err_vals <- c(15, 44)
   
 convertCSVtoFCS <- function(CSVfiles, csvDirectory, csv2fcsDirectory, fileName){
   for(i in c(1:length(CSVfiles))){
@@ -100,7 +82,7 @@ convertCSVtoFCS <- function(CSVfiles, csvDirectory, csv2fcsDirectory, fileName){
   }
 }
 
-convertCSVtoFCS(CSVfiles = CSVfiles[-err_vals], csvDirectory = CSVdirPath, csv2fcsDirectory = FCSdirPath, fileName = fileName[-err_vals])
+convertCSVtoFCS(CSVfiles = CSVfiles[-2], csvDirectory = CSVdirPath, csv2fcsDirectory = FCSdirPath, fileName = fileName[-2])
 
 # Create flowSet from FCSfiles
 # filter selected FCS files out
@@ -113,6 +95,8 @@ FCSfiles <- FCSfiles[!grepl('TPEX', FCSfiles)]
 
 FCSfiles <- FCSfiles[grepl('*_[23456]', FCSfiles)]
 
+FCSfiles <- FCSfiles
+
 
 FCSfiles <- FCSfiles[!grepl('BM_[1234567]_TTERM', FCSfiles)]
 
@@ -123,7 +107,7 @@ flowSet <- read.flowSet(files = FCSfiles, path = FCSdirPath, truncate_max_range 
 colnames(flowSet)
 
 # prep sample_md
-sample_md <- fread(file = paste(PrimaryDirectory, "sample_metadata_2.csv", sep = "/"), header = TRUE)
+sample_md <- fread(file = paste(PrimaryDirectory, "sample_metadata2.csv", sep = "/"), header = TRUE)
 sample_md
 
 # remove selected samples
@@ -138,17 +122,17 @@ sample_md <- sample_md[!grepl('TPEX', sample_id)]
 
 sample_md <- sample_md[grepl('*_[23456]', sample_id)]
 
+sample_md <- sample_md[-2]
 sample_md
 
 
 is.data.table(sample_md)
 sample_md[, sample_id := factor(sample_id)]
                      
-sample_md[ , condition := factor(condition, levels = c("BM_D7_TPEX", "BM_D14_TPEX", "BM_D21_TPEX", "BM_D28_TPEX",
-                                                        "TUM_D14_TPEX","TUM_D21_TPEX", "TUM_D28_TPEX"))]
+sample_md[ , condition := factor(condition, levels = c("BM_D14", "BM_D21", "BM_D28", "TUM_D14",
+                                                        "TUM_D21","TUM_D28"))]
 
-sample_md[ , condition := factor(condition, levels = c("BM_D7_TEFF", "BM_D14_TEFF", "BM_D21_TEFF", "BM_D28_TEFF",
-                                                       "TUM_D14_TEFF","TUM_D21_TEFF", "TUM_D28_TEFF"))]
+
 
 
 
@@ -156,13 +140,9 @@ levels(sample_md$condition)
 colnames(sample_md)
 # fwrite(sample_md, "sample_metadata.csv")
 
-# prep sample_md_BMvsLN for analysis of BM vs LN
-# sample_md_LNvsBM <- sample_md
-# sample_md_LNvsBM[, condition := fifelse(grepl("LN", condition), "LN", "BM")]
-# fwrite(sample_md_PBvsBM, "sample_md_BMvsT.csv")
 
 # create panel_md.csv
-# fwrite(list(colnames(flowSet)), "panel_md4.csv")
+#fwrite(list(colnames(flowSet)), "panel_md.csv")
 
 panel_md <- fread(file = paste(PrimaryDirectory, "panel_md.csv", sep = "/"), header = TRUE)
 all(colnames(flowSet) == panel_md$fcs_colname)
@@ -198,14 +178,16 @@ flowSet[[1]]@description$`$CYT`
 flowSet[[1]]@description$`$CYT` <- "FACS"
 
 chs_of_interest <- colnames(flowSet)[10:28]
-plot_aggregate(flowSet, channels = chs_of_interest, output_image = "FCSpreNorm.png")
-plot_aggregate(fs_AI, channels = chs_of_interest, output_image = "FCSpreNormpostAI.png")
+plot_aggregate(flowSet, channels = chs_of_interest, output_image = "FCSpreNorm2.png")
+plot_aggregate(fs_AI, channels = chs_of_interest, output_image = "FCSpreNormpostAI2.png")
 plot_aggregate(fs_PeacoQC, channels = chs_of_interest, output_image = "FCSpreNormpostPeacoQC.png")
-normFlowSet <- warpSet(flowSet, stains = c("TCF1","Eomes","Tbet"))
-plot_aggregate(normFlowSet, channels = chs_of_interest, output_image = "FCSpostNorm.png")
+normFlowSet <- warpSet(flowSet, c("Comp-Alexa Fluor 488-A :: TCF1", "Comp-Alexa Fluor 700-A :: CD101", 
+                                  "Comp-BV570-A :: CD44", "Comp-PE-Cy7-A :: BCL2", "Comp-BV510-A :: CD62L"))
+plot_aggregate(normFlowSet, channels = chs_of_interest, output_image = "FCSpostNorm2.png")
 
-# try fs_AI, no norm needed
+# try fs_AI if no norm needed or apply norm
 fs_AI <- flowSet
+fs_AI <- normFlowSet
 
 fs_AI[[1]]@description$`$CYT`
 fs_AI[[1]]@description$`$CYT` <- "FACS"
@@ -232,13 +214,14 @@ plotCounts(sce, group_by = "sample_id", color_by = "condition")
 
 plotNRS(sce, features = type_markers(sce), color_by = "condition")
 
-saveRDS(sce, file = "SCE_4timepts_TEFF_BMTUM.rds")
+saveRDS(sce, file = "SCE_3timepts_BMTUM_3.rds")
+# file set 3 is post OTI cleaning
 
 # ggplot(mtcars, aes(x = disp, y = hp)) + 
 #   geom_point() +
 #   theme_bw() +
 #   geom_smooth()
 
-
+renv::snapshot()
 
 

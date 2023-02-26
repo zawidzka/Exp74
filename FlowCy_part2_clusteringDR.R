@@ -41,25 +41,24 @@ PrimaryDirectory <- getwd()
 PrimaryDirectory
 
 # set workingDir
-workingDir <- "220915_WorkingDirectory"
+workingDir <- "230223_WorkingDirectory"
 workingDirPath <- paste(PrimaryDirectory, workingDir, sep = "/")
 setwd(workingDirPath)
 
 
-sce <- readRDS("SCE_4timepts_BMTUM.rds")
+sce <- readRDS("SCE_3timepts_BMTUM_3.rds")
 
 CATALYST::pbMDS(sce, color_by = "condition", features = type_markers(sce), fun = "median")
 
-MDSplot <- CATALYST::pbMDS(sce, features = type_markers(sce), fun = "median", label_by = NULL)
+MDSplot <- CATALYST::pbMDS(sce, features = type_markers(sce), fun = "median", label_by = "condition")
+MDSplot
 
-MDSplot + scale_color_manual(values = c("blue", "blue", "blue", "blue", "green", "green" ,"green")) 
+MDSplot + scale_color_manual(values = c("blue", "blue", "blue", "green", "green" ,"green")) + geom_point() + stat_ellipse()
 
-#+ geom_point() + stat_ellipse()
-
-ggsave("pbMDS_TPEXtimepoints.pdf", height = 7, width = 7, plot = last_plot())
+# ggsave("pbMDS_3timepoints.pdf", height = 7, width = 7, plot = last_plot())
 
 
-pdf("pbMDS_TEFF.pdf", width = 10, height = 7)
+pdf("MDS_3timepoints.pdf", width = 10, height = 7)
 CATALYST::pbMDS(sce, color_by = "condition", features = type_markers(sce), fun = "median", label_by = "condition")
 dev.off()
 
@@ -78,67 +77,75 @@ eta <- n_cells/exaggeration_factor
 # sce <- runDR(sce, dr = "TSNE", cells = n_cells, features = "type", theta = 0.5, max_iter = 1000, 
 #              distMethod = "euclidean",
 #              PCA = TRUE, eta = eta, exaggeration_factor = 12.0)
-#sce <- runDR(sce, dr =  "UMAP", cells = n_cells, features = "type")
+sce <- runDR(sce, dr =  "UMAP", cells = n_cells, features = "type", assay = "exprs")
 # sce <- runDR(sce, dr = "DiffusionMap", cells = n_cells, features = "type", assay = "exprs")
 sce2 <- runDR(sce, dr = "PCA", cells = n_cells, features = "type", assay = "exprs")
 
-saveRDS(sce, file = "SCE_4timepts_BMTUM_DR.rds")
+saveRDS(sce, file = "SCE_3timepts_BMTUM_UMAP_3_DR.rds")
 
 display.brewer.all(colorblindFriendly = TRUE)
 delta_area(sce)
 cdx2 <- type_markers(sce)
 cdx <- state_markers(sce)
-Heatmap_meta10 <- plotMultiHeatmap(sce, k = "meta10",
+Heatmap_meta6 <- plotMultiHeatmap(sce, k = "meta6",
                  hm1 = cdx2, hm2 = "abundances", 
-                 bars = FALSE, perc = TRUE, row_anno = TRUE, scale = "first")
+                 bars = FALSE, perc = TRUE, row_anno = TRUE, scale = "last")
 
 
-plotMultiHeatmap(sce, k = "meta5",
+heatmap_meta5 <- 
+  plotMultiHeatmap(sce, k = "meta6",
                  hm1 = cdx2, hm2 = "abundances", 
                  bars = TRUE, perc = TRUE, row_anno = TRUE, scale = "last")
 
 
 
-plotExprHeatmap(sce, features = type_markers(sce), k = "meta8", by = "cluster_id",  fun = "mean", scale = "first")
+plotExprHeatmap(sce, features = type_markers(sce), k = "meta6", by = "cluster_id",  fun = "mean", scale = "first")
 
 
-plotDR(sce, dr = "UMAP", color_by = "condition") + geom_point(size = 2)
-UMAP <- plotDR(sce, dr = "UMAP", color_by = "condition") + 
-  geom_point(size = 2) #+ 
- # scale_color_manual(values = c("salmon", "salmon", "salmon", "salmon", "darkturquoise", "darkturquoise" ,"darkturquoise")) 
+UMAP1 <- plotDR(sce, dr = "UMAP", color_by = "condition") + geom_point(size = 2)
+UMAP2 <- plotDR(sce, dr = "UMAP", color_by = "condition") + 
+  geom_point(size = 2) + scale_color_manual(values = c("salmon", "salmon", "salmon", "darkturquoise", "darkturquoise" ,"darkturquoise")) 
 PCA <- plotDR(sce, dr = "PCA", color_by = "condition") + geom_point()
 plotDR(sce, dr = "UMAP", color_by = "condition")
 PCA + stat_ellipse()
 
 
 
-pdf("UMAP_colorbycondition.pdf", height = 7, width = 7, useDingbats = FALSE)
-UMAP
+pdf("MDS.pdf", height = 8, width = 12, useDingbats = FALSE)
+MDSplot
 dev.off()
 
-tiff("UMAP_colorbytissue.tiff", height = 7, width = 7, units = "in", res = 600)
-UMAP
+tiff("MDS.tiff", height = 8, width = 12, units = "in", res = 600)
+MDSplot
 dev.off()
 
-pdf("HeatmapMeta10.pdf", height = 8, width = 14, useDingbats = FALSE)
-Heatmap_meta10
+pdf("UMAP_colorbycondition.pdf", height = 6, width = 7, useDingbats = FALSE)
+UMAP1
 dev.off()
 
-tiff("HeatmapMeta10.tiff", height = 8, width = 14, units = "in", res = 600)
-Heatmap_meta10
+tiff("UMAP_colorbycondition.tiff", height = 6, width = 7, units = "in", res = 600)
+UMAP1
+dev.off()
+
+pdf("HeatmapMeta6_2.pdf", height = 8, width = 14, useDingbats = FALSE)
+Heatmap_meta6
+dev.off()
+
+tiff("HeatmapMeta6_2.tiff", height = 8, width = 14, units = "in", res = 600)
+Heatmap_meta6
 dev.off()
 
 
-Abundances <- plotAbundances(sce, k = "meta10", by = "cluster_id", group_by = "condition")
+Abundances <- plotAbundances(sce, k = "meta6", by = "cluster_id", group_by = "condition")
 ggsave("abundances.pdf", plot = last_plot(), height = 6, width = 10)
 
-pdf("Clusters_meta10.pdf", height = 8, width = 12, useDingbats = FALSE)
+pdf("Clusters_meta6.pdf", height = 8, width = 12, useDingbats = FALSE)
 Abundances + 
   labs(title = "Frequency of Cluster Expression by Condition") +
   theme(plot.title = element_text(face = "bold", size = "14"))
 dev.off()
 
-tiff("Clusters_meta10.tiff", height = 8, width = 12, units = "in", res = 600)
+tiff("Clusters_meta6.tiff", height = 8, width = 12, units = "in", res = 600)
 Abundances +
 labs(title = "Frequency of Cluster Expression by Condition") +
   theme(plot.title = element_text(face = "bold", size = "14"))
@@ -157,13 +164,27 @@ CATALYST::plotDR(sce2, dr = "UMAP", color_by = "condition") + geom_point(size = 
 
 
 
-CATALYST::plotDR(sce, dr = "UMAP", color_by = "meta8", facet_by = "sample_id")
-UMAP_bycondition_withmarkers <- CATALYST::plotDR(sce, dr = "UMAP", 
-                 color_by = c("Ly108", "CX3CR1", "CD62L", "CD44", "CD127", "KLRG1", "Ki67", "BCL2", "PD1", "TIM3", "CD101"), 
+CATALYST::plotDR(sce, dr = "UMAP", color_by = "meta5", facet_by = "condition")
+CATALYST::plotDR(sce, dr = "UMAP", color_by = c("PD1", "TIM3", "TOX"))
+
+
+UMAP_singlemarkers <- CATALYST::plotDR(sce, dr = "UMAP", 
+                 color_by = c("Ly108", "CX3CR1", "CD62L", "TCF1", "CD44", "CD69", "CD127", "KLRG1", 
+                              "Ki67", "BCL2", "PD1", "TIM3", "TOX", "CD101"))#, 
                  facet_by = "condition") +
                  geom_point(size = 1)
 plotDR(sce, dr = "UMAP", color_by = "TCF1", facet_by = "condition") +  
   geom_density2d(binwidth = 0.006, colour = "grey")
 plotDR(sce2, dr = "UMAP", color_by = "meta9", facet_by = "condition", ncol = NULL) +  
   geom_density2d(binwidth = 0.016, colour = "grey") + geom_point(size = 1)
+
+
+
+pdf("UMAP_singlemarkers_2.pdf", height = 8, width = 12, useDingbats = FALSE)
+UMAP_singlemarkers
+dev.off()
+
+tiff("UMAP_singlemarkers_2.tiff", height = 8, width = 12, units = "in", res = 600)
+UMAP_singlemarkers
+dev.off()
                                                                                         
